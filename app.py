@@ -1,6 +1,6 @@
 """
 DIMOP Plusz 126B Tudásbázis — Kérdés-Válasz alkalmazás
-Dual API: Claude Sonnet 4 + GPT-4o
+Dual API: Claude Sonnet 4 + GPT-4o Mini
 """
 
 import streamlit as st
@@ -106,7 +106,7 @@ def get_témák_lista():
 def route_claude(kérdés: str, client) -> list[str]:
     """Claude Haiku-val határozza meg a releváns témákat."""
     response = client.messages.create(
-        model="claude-haiku-4-20250414",
+        model="claude-3-5-haiku-latest",
         max_tokens=200,
         messages=[{
             "role": "user",
@@ -120,7 +120,7 @@ def route_claude(kérdés: str, client) -> list[str]:
 
 
 def route_openai(kérdés: str, client) -> list[str]:
-    """GPT-4o Mini-vel határozza meg a releváns témákat."""
+    """GPT-4o Mini Mini-vel határozza meg a releváns témákat."""
     response = client.chat.completions.create(
         model="gpt-4o-mini",
         max_tokens=200,
@@ -177,7 +177,7 @@ def answer_claude(kérdés: str, context: str, client, messages_history: list) -
     api_messages.append({"role": "user", "content": kérdés})
 
     response = client.messages.create(
-        model="claude-sonnet-4-20250514",
+        model="claude-3-5-sonnet-latest",
         max_tokens=4096,
         system=[{
             "type": "text",
@@ -191,7 +191,7 @@ def answer_claude(kérdés: str, context: str, client, messages_history: list) -
 
 
 def answer_openai(kérdés: str, context: str, client, messages_history: list) -> str:
-    """GPT-4o-gyel válaszol a kérdésre."""
+    """GPT-4o Mini-gyel válaszol a kérdésre."""
     system_with_kb = SYSTEM_PROMPT + context
 
     # Üzenet-előzmények összeállítása
@@ -201,7 +201,7 @@ def answer_openai(kérdés: str, context: str, client, messages_history: list) -
     api_messages.append({"role": "user", "content": kérdés})
 
     response = client.chat.completions.create(
-        model="gpt-4o",
+        model="gpt-4o-mini",
         max_completion_tokens=4096,
         messages=api_messages
     )
@@ -251,7 +251,7 @@ def main():
 
         modell = st.radio(
             "Válaszadó modell:",
-            ["Claude Sonnet 4", "GPT-4o"],
+            ["Claude Sonnet 4", "GPT-4o Mini"],
             index=0,
             help="Melyik AI modell válaszoljon a kérdésedre?"
         )
