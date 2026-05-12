@@ -1,6 +1,6 @@
 """
 DIMOP Plusz 126B Tudásbázis — Kérdés-Válasz alkalmazás
-Dual API: Claude Sonnet 4 + GPT-4o
+Dual API: Claude Sonnet 4 + GPT-5 Mini
 """
 
 import streamlit as st
@@ -121,7 +121,7 @@ def route_claude(kérdés: str, client) -> list[str]:
 
 
 def route_openai(kérdés: str, client) -> list[str]:
-    """GPT-4o Mini-vel határozza meg a releváns témákat."""
+    """GPT-5 Mini Mini-vel határozza meg a releváns témákat."""
     response = client.chat.completions.create(
         model="gpt-4o-mini",
         max_tokens=200,
@@ -192,7 +192,7 @@ def answer_claude(kérdés: str, context: str, client, messages_history: list) -
 
 
 def answer_openai(kérdés: str, context: str, client, messages_history: list) -> str:
-    """GPT-4o-gyel válaszol a kérdésre."""
+    """GPT-5 Mini-gyel válaszol a kérdésre."""
     system_with_kb = SYSTEM_PROMPT + context
 
     # Üzenet-előzmények összeállítása
@@ -202,7 +202,7 @@ def answer_openai(kérdés: str, context: str, client, messages_history: list) -
     api_messages.append({"role": "user", "content": kérdés})
 
     response = client.chat.completions.create(
-        model="gpt-4o",
+        model="gpt-5-mini",
         max_completion_tokens=4096,
         messages=api_messages
     )
@@ -252,7 +252,7 @@ def main():
 
         modell = st.radio(
             "Válaszadó modell:",
-            ["Claude Sonnet 4", "GPT-4o"],
+            ["Claude Sonnet 4", "GPT-5 Mini"],
             index=0,
             help="Melyik AI modell válaszoljon a kérdésedre?"
         )
@@ -326,18 +326,6 @@ def main():
                 st.write(f"📚 Témakörök: {', '.join(téma_nevek)}")
 
                 # 2. Kontextus összeállítása
-                # GPT-4o: max ~25K token a 30K TPM rate limit miatt
-                if modell == "GPT-4o":
-                    gpt_fájlok = []
-                    gpt_chars = 0
-                    for f in releváns_fájlok:
-                        if f in tudásbázis:
-                            fájl_méret = len(tudásbázis[f])
-                            if gpt_chars + fájl_méret < 85000:  # ~25K token
-                                gpt_fájlok.append(f)
-                                gpt_chars += fájl_méret
-                    releváns_fájlok = gpt_fájlok if gpt_fájlok else releváns_fájlok[:1]
-                    téma_nevek = [TÉMÁK[f]["cím"] for f in releváns_fájlok if f in TÉMÁK]
                 st.write("📖 Tudásbázis betöltése...")
                 context = build_context(releváns_fájlok, tudásbázis)
 
