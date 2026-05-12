@@ -1,0 +1,7 @@
+# API kulcsok - SOHA ne kerüljön GitHub-ra!
+.streamlit/secrets.toml
+
+# Python
+__pycache__/
+*.pyc
+.venv/
