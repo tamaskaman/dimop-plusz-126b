@@ -106,7 +106,7 @@ def get_témák_lista():
 def route_claude(kérdés: str, client) -> list[str]:
     """Claude Haiku-val határozza meg a releváns témákat."""
     response = client.messages.create(
-        model="claude-3-5-haiku-latest",
+        model="claude-haiku-4-5-20251001",
         max_tokens=200,
         messages=[{
             "role": "user",
@@ -177,7 +177,7 @@ def answer_claude(kérdés: str, context: str, client, messages_history: list) -
     api_messages.append({"role": "user", "content": kérdés})
 
     response = client.messages.create(
-        model="claude-3-5-sonnet-latest",
+        model="claude-sonnet-4-6",
         max_tokens=4096,
         system=[{
             "type": "text",
