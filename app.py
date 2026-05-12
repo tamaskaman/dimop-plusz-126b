@@ -337,7 +337,11 @@ def main():
 
                 # 2. Kontextus összeállítása
                 st.write("📖 Tudásbázis betöltése...")
-                context = build_context(releváns_fájlok, tudásbázis)
+                # Claude: 30K TPM limit → max 80K kar; GPT-5.1: 500K TPM → teljes fájlok
+                if modell == "Claude Sonnet 4":
+                    context = build_context(releváns_fájlok, tudásbázis, max_chars=80000)
+                else:
+                    context = build_context(releváns_fájlok, tudásbázis, max_chars=700000)
 
                 # 3. Válasz generálása
                 st.write(f"🤖 Válasz generálása ({modell})...")
