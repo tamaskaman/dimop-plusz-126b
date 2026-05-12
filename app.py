@@ -58,14 +58,15 @@ TÉMÁK = {
 # ── Rendszer prompt ──────────────────────────────────────────────
 SYSTEM_PROMPT = """Te a DIMOP Plusz 126B felhívás projektkiválasztási folyamatának szakértője vagy.
 
-Az alábbi tudásbázis képzési videók tisztított átiratából készült. Minden sor tartalmaz egy időbélyeget [ÓÓ:PP:MM-ÓÓ:PP:MM] formátumban, amely a forrás videó adott szakaszára utal.
+Az alábbi tudásbázis képzési videók tisztított átiratából készült. Minden fájl elején szerepel a forrás videó neve (Forrás sor). Minden szöveges sor tartalmaz egy időbélyeget [ÓÓ:PP:MM-ÓÓ:PP:MM] formátumban.
 
 FELADATOD:
 1. A feltett kérdésre KIZÁRÓLAG a tudásbázis tartalma alapján válaszolj.
-2. A válaszban MINDIG hivatkozz a releváns videó-időbélyegekre, például: "A KKV minősítésről szóló videóban [00:05:12-00:05:30] elhangzik, hogy..."
+2. A válaszban MINDIG hivatkozz a forrás videó nevére ÉS az időbélyegre, például: "A KKV minősítés videóban (3_KKV_minosites, 5. rész) [00:05:12-00:05:30] elhangzik, hogy..."
 3. Ha a kérdésre a tudásbázis nem tartalmaz választ, mondd el őszintén.
 4. Válaszolj magyarul, szakszerűen de közérthetően.
 5. Ha több témakör is érintett, hivatkozz mindegyikre.
+6. FORMÁZÁS: használj normál szöveget, félkövér kiemelést és felsorolást. NE használj nagy címsorokat (# ## ###), csak ha a válasz több fő részt tartalmaz. A válasz legyen folyó szöveg, nem prezentáció.
 
 TUDÁSBÁZIS:
 """
@@ -325,9 +326,17 @@ def main():
                 st.write(f"📚 Témakörök: {', '.join(téma_nevek)}")
 
                 # 2. Kontextus összeállítása
-                # GPT-4o: max 1 fájl a 30K TPM rate limit miatt
-                if modell == "GPT-4o" and len(releváns_fájlok) > 1:
-                    releváns_fájlok = releváns_fájlok[:1]
+                # GPT-4o: max ~25K token a 30K TPM rate limit miatt
+                if modell == "GPT-4o":
+                    gpt_fájlok = []
+                    gpt_chars = 0
+                    for f in releváns_fájlok:
+                        if f in tudásbázis:
+                            fájl_méret = len(tudásbázis[f])
+                            if gpt_chars + fájl_méret < 85000:  # ~25K token
+                                gpt_fájlok.append(f)
+                                gpt_chars += fájl_méret
+                    releváns_fájlok = gpt_fájlok if gpt_fájlok else releváns_fájlok[:1]
                     téma_nevek = [TÉMÁK[f]["cím"] for f in releváns_fájlok if f in TÉMÁK]
                 st.write("📖 Tudásbázis betöltése...")
                 context = build_context(releváns_fájlok, tudásbázis)
