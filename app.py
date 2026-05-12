@@ -177,47 +177,64 @@ def build_context(fájlnevek: list[str], tudásbázis: dict, max_chars: int = 80
     return "\n\n---\n\n".join(context_parts)
 
 
+def answer_with_retry(func, max_retries=2, wait_seconds=30):
+    """Rate limit (429) esetén automatikusan újrapróbálja a hívást."""
+    for attempt in range(max_retries + 1):
+        try:
+            return func()
+        except Exception as e:
+            if "429" in str(e) or "rate_limit" in str(e).lower():
+                if attempt < max_retries:
+                    import streamlit as st
+                    st.write(f"⏳ Rate limit — várakozás {wait_seconds} mp...")
+                    time.sleep(wait_seconds)
+                    continue
+            raise
+
+
 def answer_claude(kérdés: str, context: str, client, messages_history: list) -> str:
-    """Claude Opus-szal válaszol a kérdésre."""
+    """Claude Sonnet 4.6-tal válaszol a kérdésre."""
     system_with_kb = SYSTEM_PROMPT + context
 
-    # Üzenet-előzmények összeállítása
     api_messages = []
     for msg in messages_history:
         api_messages.append({"role": msg["role"], "content": msg["content"]})
     api_messages.append({"role": "user", "content": kérdés})
 
-    response = client.messages.create(
-        model="claude-sonnet-4-6",
-        max_tokens=4096,
-        system=[{
-            "type": "text",
-            "text": system_with_kb,
-            "cache_control": {"type": "ephemeral"}
-        }],
-        messages=api_messages
-    )
+    def call():
+        response = client.messages.create(
+            model="claude-sonnet-4-6",
+            max_tokens=4096,
+            system=[{
+                "type": "text",
+                "text": system_with_kb,
+                "cache_control": {"type": "ephemeral"}
+            }],
+            messages=api_messages
+        )
+        return response.content[0].text
 
-    return response.content[0].text
+    return answer_with_retry(call)
 
 
 def answer_openai(kérdés: str, context: str, client, messages_history: list) -> str:
     """GPT-5.1-gyel válaszol a kérdésre."""
     system_with_kb = SYSTEM_PROMPT + context
 
-    # Üzenet-előzmények összeállítása
     api_messages = [{"role": "system", "content": system_with_kb}]
     for msg in messages_history:
         api_messages.append({"role": msg["role"], "content": msg["content"]})
     api_messages.append({"role": "user", "content": kérdés})
 
-    response = client.chat.completions.create(
-        model="gpt-5.1",
-        max_completion_tokens=4096,
-        messages=api_messages
-    )
+    def call():
+        response = client.chat.completions.create(
+            model="gpt-5.1",
+            max_completion_tokens=4096,
+            messages=api_messages
+        )
+        return response.choices[0].message.content
 
-    return response.choices[0].message.content
+    return answer_with_retry(call)
 
 
 # ── Jelszóvédelem ────────────────────────────────────────────────
@@ -337,11 +354,7 @@ def main():
 
                 # 2. Kontextus összeállítása
                 st.write("📖 Tudásbázis betöltése...")
-                # Claude: 30K TPM limit → max 80K kar; GPT-5.1: 500K TPM → teljes fájlok
-                if modell == "Claude Sonnet 4":
-                    context = build_context(releváns_fájlok, tudásbázis, max_chars=80000)
-                else:
-                    context = build_context(releváns_fájlok, tudásbázis, max_chars=700000)
+                context = build_context(releváns_fájlok, tudásbázis, max_chars=700000)
 
                 # 3. Válasz generálása
                 st.write(f"🤖 Válasz generálása ({modell})...")
