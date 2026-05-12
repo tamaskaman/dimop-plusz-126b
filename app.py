@@ -1,6 +1,6 @@
 """
 DIMOP Plusz 126B Tudásbázis — Kérdés-Válasz alkalmazás
-Dual API: Claude Opus 4.6 + GPT-5.4
+Dual API: Claude Sonnet 4 + GPT-4o
 """
 
 import streamlit as st
@@ -177,7 +177,7 @@ def answer_claude(kérdés: str, context: str, client, messages_history: list) -
     api_messages.append({"role": "user", "content": kérdés})
 
     response = client.messages.create(
-        model="claude-opus-4-20250514",
+        model="claude-sonnet-4-20250514",
         max_tokens=4096,
         system=[{
             "type": "text",
@@ -191,7 +191,7 @@ def answer_claude(kérdés: str, context: str, client, messages_history: list) -
 
 
 def answer_openai(kérdés: str, context: str, client, messages_history: list) -> str:
-    """GPT-5.4-gyel válaszol a kérdésre."""
+    """GPT-4o-gyel válaszol a kérdésre."""
     system_with_kb = SYSTEM_PROMPT + context
 
     # Üzenet-előzmények összeállítása
@@ -201,8 +201,8 @@ def answer_openai(kérdés: str, context: str, client, messages_history: list) -
     api_messages.append({"role": "user", "content": kérdés})
 
     response = client.chat.completions.create(
-        model="gpt-5.4",
-        max_tokens=4096,
+        model="gpt-4o",
+        max_completion_tokens=4096,
         messages=api_messages
     )
 
@@ -251,7 +251,7 @@ def main():
 
         modell = st.radio(
             "Válaszadó modell:",
-            ["Claude Opus 4.6", "GPT-5.4"],
+            ["Claude Sonnet 4", "GPT-4o"],
             index=0,
             help="Melyik AI modell válaszoljon a kérdésedre?"
         )
@@ -271,7 +271,7 @@ def main():
 
     # ── API kliensek inicializálása ──
     try:
-        if modell == "Claude Opus 4.6":
+        if modell == "Claude Sonnet 4":
             from anthropic import Anthropic
             client = Anthropic(api_key=st.secrets["ANTHROPIC_API_KEY"])
         else:
@@ -313,7 +313,7 @@ def main():
                 # 1. Téma routing
                 st.write("🔍 Releváns témakörök keresése...")
                 try:
-                    if modell == "Claude Opus 4.6":
+                    if modell == "Claude Sonnet 4":
                         releváns_fájlok = route_claude(kérdés, client)
                     else:
                         releváns_fájlok = route_openai(kérdés, client)
@@ -333,7 +333,7 @@ def main():
                 start_time = time.time()
 
                 try:
-                    if modell == "Claude Opus 4.6":
+                    if modell == "Claude Sonnet 4":
                         válasz = answer_claude(kérdés, context, client, st.session_state.messages[:-1])
                     else:
                         válasz = answer_openai(kérdés, context, client, st.session_state.messages[:-1])
