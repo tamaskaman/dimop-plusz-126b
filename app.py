@@ -1,6 +1,6 @@
 """
 DIMOP Plusz 126B Tudásbázis — Kérdés-Válasz alkalmazás
-Dual API: Claude Sonnet 4 + GPT-4o Mini
+Dual API: Claude Sonnet 4 + GPT-4o
 """
 
 import streamlit as st
@@ -120,7 +120,7 @@ def route_claude(kérdés: str, client) -> list[str]:
 
 
 def route_openai(kérdés: str, client) -> list[str]:
-    """GPT-4o Mini Mini-vel határozza meg a releváns témákat."""
+    """GPT-4o Mini-vel határozza meg a releváns témákat."""
     response = client.chat.completions.create(
         model="gpt-4o-mini",
         max_tokens=200,
@@ -191,7 +191,7 @@ def answer_claude(kérdés: str, context: str, client, messages_history: list) -
 
 
 def answer_openai(kérdés: str, context: str, client, messages_history: list) -> str:
-    """GPT-4o Mini-gyel válaszol a kérdésre."""
+    """GPT-4o-gyel válaszol a kérdésre."""
     system_with_kb = SYSTEM_PROMPT + context
 
     # Üzenet-előzmények összeállítása
@@ -201,7 +201,7 @@ def answer_openai(kérdés: str, context: str, client, messages_history: list) -
     api_messages.append({"role": "user", "content": kérdés})
 
     response = client.chat.completions.create(
-        model="gpt-4o-mini",
+        model="gpt-4o",
         max_completion_tokens=4096,
         messages=api_messages
     )
@@ -251,7 +251,7 @@ def main():
 
         modell = st.radio(
             "Válaszadó modell:",
-            ["Claude Sonnet 4", "GPT-4o Mini"],
+            ["Claude Sonnet 4", "GPT-4o"],
             index=0,
             help="Melyik AI modell válaszoljon a kérdésedre?"
         )
@@ -325,6 +325,10 @@ def main():
                 st.write(f"📚 Témakörök: {', '.join(téma_nevek)}")
 
                 # 2. Kontextus összeállítása
+                # GPT-4o: max 1 fájl a 30K TPM rate limit miatt
+                if modell == "GPT-4o" and len(releváns_fájlok) > 1:
+                    releváns_fájlok = releváns_fájlok[:1]
+                    téma_nevek = [TÉMÁK[f]["cím"] for f in releváns_fájlok if f in TÉMÁK]
                 st.write("📖 Tudásbázis betöltése...")
                 context = build_context(releváns_fájlok, tudásbázis)
 
