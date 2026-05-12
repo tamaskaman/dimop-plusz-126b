@@ -1,6 +1,6 @@
 """
 DIMOP Plusz 126B Tudásbázis — Kérdés-Válasz alkalmazás
-Dual API: Claude Sonnet 4 + GPT-5 Mini
+Dual API: Claude Sonnet 4 + GPT-5.1
 """
 
 import streamlit as st
@@ -121,7 +121,7 @@ def route_claude(kérdés: str, client) -> list[str]:
 
 
 def route_openai(kérdés: str, client) -> list[str]:
-    """GPT-5 Mini Mini-vel határozza meg a releváns témákat."""
+    """GPT-5.1 Mini-vel határozza meg a releváns témákat."""
     response = client.chat.completions.create(
         model="gpt-4o-mini",
         max_tokens=200,
@@ -149,20 +149,30 @@ def parse_routing_response(válasz: str) -> list[str]:
     return találatok
 
 
-def build_context(fájlnevek: list[str], tudásbázis: dict, max_tokens: int = 180000) -> str:
-    """Összeállítja a kontextust a kiválasztott fájlokból."""
+def build_context(fájlnevek: list[str], tudásbázis: dict, max_chars: int = 80000) -> str:
+    """Összeállítja a kontextust a kiválasztott fájlokból.
+
+    max_chars: maximum karakter (~23K token) — mindkét API 30K TPM limitű,
+    ezért biztosítjuk hogy a kontextus + system prompt + válasz beleférjen.
+    Ha egy fájl túl nagy, csonkoljuk a végét.
+    """
     context_parts = []
-    total_chars = 0
-    char_limit = max_tokens * 3.5  # ~3.5 karakter/token becslés
+    remaining = max_chars
 
     for fájl in fájlnevek:
-        if fájl in tudásbázis:
+        if fájl in tudásbázis and remaining > 0:
             tartalom = tudásbázis[fájl]
-            if total_chars + len(tartalom) < char_limit:
+            if len(tartalom) <= remaining:
                 context_parts.append(tartalom)
-                total_chars += len(tartalom)
+                remaining -= len(tartalom)
             else:
-                break
+                # Fájl csonkolása — utolsó teljes sor keresése
+                csonkolt = tartalom[:remaining]
+                utolsó_sor = csonkolt.rfind("\n")
+                if utolsó_sor > 0:
+                    csonkolt = csonkolt[:utolsó_sor]
+                context_parts.append(csonkolt + "\n\n[... a fájl további része nem fért bele ...]")
+                remaining = 0
 
     return "\n\n---\n\n".join(context_parts)
 
@@ -192,7 +202,7 @@ def answer_claude(kérdés: str, context: str, client, messages_history: list) -
 
 
 def answer_openai(kérdés: str, context: str, client, messages_history: list) -> str:
-    """GPT-5 Mini-gyel válaszol a kérdésre."""
+    """GPT-5.1-gyel válaszol a kérdésre."""
     system_with_kb = SYSTEM_PROMPT + context
 
     # Üzenet-előzmények összeállítása
@@ -202,7 +212,7 @@ def answer_openai(kérdés: str, context: str, client, messages_history: list) -
     api_messages.append({"role": "user", "content": kérdés})
 
     response = client.chat.completions.create(
-        model="gpt-5-mini",
+        model="gpt-5.1",
         max_completion_tokens=4096,
         messages=api_messages
     )
@@ -252,7 +262,7 @@ def main():
 
         modell = st.radio(
             "Válaszadó modell:",
-            ["Claude Sonnet 4", "GPT-5 Mini"],
+            ["Claude Sonnet 4", "GPT-5.1"],
             index=0,
             help="Melyik AI modell válaszoljon a kérdésedre?"
         )
